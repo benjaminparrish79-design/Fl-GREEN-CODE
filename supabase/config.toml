@@ -1,0 +1,27 @@
+# Supabase Project Configuration
+
+[project]
+project_id = "sbbwirekjcbpbgwwmibo"
+
+[api]
+enabled = true
+max_body_size = 20
+
+[db]
+major_version = 15
+
+[realtime]
+enabled = true
+max_bytes_per_second = 1048576
+
+[auth]
+enable_signup = true
+enable_anonymous_signups = false
+jwt_expiry = 3600
+jwt_secret = "your-jwt-secret-here"
+
+[storage]
+file_size_limit = 52428800
+
+[functions]
+import_map = "./functions/import_map.json"

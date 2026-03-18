@@ -1,0 +1,82 @@
+import { useState, useEffect } from 'react';
+import { supabase } from './utils/supabaseClient';
+import DailyKickoff from './components/DailyKickoff';
+import ActiveJob from './components/ActiveJob';
+import './App.css';
+
+export default function App() {
+  const [techName, setTechName] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [quizUnlocked, setQuizUnlocked] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    const { data } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('is_active', true);
+    setProperties(data || []);
+    setLoading(false);
+  };
+
+  const handleLogin = () => {
+    if (techName.trim()) {
+      setIsLoggedIn(true);
+    }
+  };
+
+  const handleJobComplete = () => {
+    setSelectedProperty(null);
+    setQuizUnlocked(false);
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="login-container">
+        <h1>FGC - Florida Green Code Compliance</h1>
+        <input
+          type="text"
+          placeholder="Enter your name"
+          value={techName}
+          onChange={(e) => setTechName(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+        />
+        <button onClick={handleLogin}>Login</button>
+      </div>
+    );
+  }
+
+  if (!quizUnlocked) {
+    return <DailyKickoff onUnlock={() => setQuizUnlocked(true)} techName={techName} />;
+  }
+
+  if (selectedProperty) {
+    return <ActiveJob property={selectedProperty} techName={techName} onComplete={handleJobComplete} />;
+  }
+
+  if (loading) {
+    return <div className="loading">Loading properties...</div>;
+  }
+
+  return (
+    <div className="properties-list">
+      <h1>Available Properties</h1>
+      <div className="property-grid">
+        {properties.map((property) => (
+          <div key={property.id} className="property-card">
+            <h3>{property.name}</h3>
+            <p>Client: {property.client_contact_name}</p>
+            <p>Size: {property.total_sq_ft} sq ft</p>
+            <button onClick={() => setSelectedProperty(property)}>Start Job</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

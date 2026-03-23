@@ -1,0 +1,124 @@
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { supabase } from './utils/supabaseClient';
+import DailyKickoff from './components/DailyKickoff';
+import ActiveJob from './components/ActiveJob';
+import './App.css';
+
+function LoginPage({ onLogin }) {
+  const [techName, setTechName] = useState('');
+  return (
+    <div className="login-container">
+      <h1>FGC - Florida Green Code Compliance</h1>
+      <input
+        type="text"
+        placeholder="Enter your name"
+        value={techName}
+        onChange={(e) => setTechName(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && onLogin(techName)}
+      />
+      <button onClick={() => onLogin(techName)}>Login</button>
+    </div>
+  );
+}
+
+function PropertiesPage({ techName, onSelectProperty }) {
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from('properties')
+      .select('*')
+      .eq('is_active', true)
+      .then(({ data }) => {
+        setProperties(data || []);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="loading">Loading properties...</div>;
+
+  return (
+    <div className="properties-list">
+      <h1>Available Properties</h1>
+      <div className="property-grid">
+        {properties.map((property) => (
+          <div key={property.id} className="property-card">
+            <h3>{property.name}</h3>
+            <p>Client: {property.client_contact_name}</p>
+            <p>Size: {property.total_sq_ft} sq ft</p>
+            <button onClick={() => onSelectProperty(property)}>Start Job</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [techName, setTechName] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [quizUnlocked, setQuizUnlocked] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+
+  const handleLogin = (name) => {
+    if (name.trim()) {
+      setTechName(name);
+      setIsLoggedIn(true);
+    }
+  };
+
+  const handleJobComplete = () => {
+    setSelectedProperty(null);
+  };
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            isLoggedIn
+              ? <Navigate to="/kickoff" />
+              : <LoginPage onLogin={handleLogin} />
+          }
+        />
+        <Route
+          path="/kickoff"
+          element={
+            !isLoggedIn
+              ? <Navigate to="/" />
+              : <DailyKickoff
+                  techName={techName}
+                  onUnlock={() => setQuizUnlocked(true)}
+                />
+          }
+        />
+        <Route
+          path="/properties"
+          element={
+            !isLoggedIn || !quizUnlocked
+              ? <Navigate to="/" />
+              : <PropertiesPage
+                  techName={techName}
+                  onSelectProperty={setSelectedProperty}
+                />
+          }
+        />
+        <Route
+          path="/job"
+          element={
+            !selectedProperty
+              ? <Navigate to="/properties" />
+              : <ActiveJob
+                  property={selectedProperty}
+                  techName={techName}
+                  onComplete={handleJobComplete}
+                />
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}
